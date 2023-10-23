@@ -92,11 +92,14 @@ fn (mut p PowerManager) periodic_wakeup() {
 			// Fixed periodic wakeup (once a day)
 			// we wakeup the node if the periodic wakeup start time has started and only if the last time the node was awake
 			// was before the periodic wakeup start of that day
-			p.logger.info('${manager.power_manager_prefix} Periodic wakeup for node ${node.id}')
+
 			p.schedule_power_job(node.id, .on) or {
-				p.logger.error('${manager.power_manager_prefix} Job to power on node ${node.id} failed: ${err}')
+				p.logger.error('${manager.power_manager_prefix} Periodic wakeup job to power on node ${node.id} failed: ${err}')
 				continue
 			}
+
+			p.logger.info('${manager.power_manager_prefix} Periodic wakeup for node ${node.id} is successful')
+
 			amount_wakeup_calls += 1
 			if amount_wakeup_calls >= p.db.periodic_wakeup_limit {
 				// reboot X nodes at a time others will be rebooted 5 min later
@@ -110,11 +113,14 @@ fn (mut p PowerManager) periodic_wakeup() {
 			// as we do a random wakeup 10 times a month we know the node will be on for 30 minutes 10 times a month so we can substract 6 times the amount of random wakeups a month
 			// we also do not go through the code if we have woken up too many nodes at once => substract (10 * (n-1))/min(periodic_wakeup_limit, amount_of_nodes) from 8460
 			// now we can divide that by 10 and randomly generate a number in that range, if it's 0 we do the random wakeup
-			p.logger.info('${manager.power_manager_prefix} Random wakeup for node ${node.id}')
+
 			p.schedule_power_job(node.id, .on) or {
-				p.logger.error('${manager.power_manager_prefix} Job to power on node ${node.id} failed: ${err}')
+				p.logger.error('${manager.power_manager_prefix} Random wakeup job to power on node ${node.id} failed: ${err}')
 				continue
 			}
+
+			p.logger.info('${manager.power_manager_prefix} Random wakeup for node ${node.id} is successful')
+
 			amount_wakeup_calls += 1
 			node.times_random_wakeups += 1
 			if amount_wakeup_calls >= p.db.periodic_wakeup_limit {
