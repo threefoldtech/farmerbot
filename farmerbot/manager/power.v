@@ -77,7 +77,8 @@ fn (mut p PowerManager) poweron_all_nodes() {
 }
 
 fn (mut p PowerManager) periodic_wakeup() {
-	now := time.now()
+	// convert time to utc to avoid daylight saving issues
+	now := time.now().local_to_utc()
 	today := time.new_time(year: now.year, month: now.month, day: now.day)
 	periodic_wakeup_start := today.add(p.db.periodic_wakeup_start)
 	mut amount_wakeup_calls := 0
@@ -88,7 +89,7 @@ fn (mut p PowerManager) periodic_wakeup() {
 		if now.day == 1 && now.hour == 1 && now.minute >= 0 && now.minute < 5 {
 			node.times_random_wakeups = 0
 		}
-		if periodic_wakeup_start <= now && node.last_time_awake < periodic_wakeup_start {
+		if periodic_wakeup_start <= now && node.last_time_awake.local_to_utc() < periodic_wakeup_start {
 			// Fixed periodic wakeup (once a day)
 			// we wakeup the node if the periodic wakeup start time has started and only if the last time the node was awake
 			// was before the periodic wakeup start of that day
@@ -306,8 +307,16 @@ fn (mut p PowerManager) configure(mut action actions.Action) ! {
 		periodic_wakeup_limit = system.default_periodic_wakeup_limit
 		p.logger.warn('${manager.power_manager_prefix} The setting periodic_wakeup_limit should be greater then 0!')
 	}
-
+	periodic_wakeup_start_utc = convert_to_utc(periodic_wakeup_start)
 	p.db.wake_up_threshold = wake_up_threshold
-	p.db.periodic_wakeup_start = periodic_wakeup_start
+	p.db.periodic_wakeup_start = periodic_wakeup_start_utc
 	p.db.periodic_wakeup_limit = periodic_wakeup_limit
+}
+
+
+fn convert_to_utc(d Duration) Duration{
+	now := time.now()
+	today := time.new_time(year: now.year, month: now.month, day: now.day)
+	daily_wakeup := today.add(d).local_to_utc()
+	return Duration(daily_wakeup.hour * time.hour + daily_wakeup.minute * time.minute)
 }
